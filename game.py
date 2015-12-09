@@ -33,14 +33,12 @@ def format_msg(msg):
 	return formatted
 
 class Achievement:
-
 	def __init__(self, title, msg, should_unlock):
 		self.title = title
 		self.msg = msg
 		self.should_unlock = should_unlock
 
 class State:
-
 	def __init__(self, key, msg, transitions):
 		self.key = key
 		self.msg = format_msg(msg)
@@ -93,7 +91,6 @@ class Game:
 
 	states_reached = set([])
 	unlocked_achievements = set([])
-
 	
 	def __init__(self):
 		self.over = False
@@ -149,7 +146,6 @@ class Game:
 		sys.exit()
 
 	def step(self):
-
 		self.over = not self.current_state.transitions
 
 		Writer.print_state_text(self.current_state)
@@ -174,7 +170,6 @@ class Game:
 				pass
 	
 	def achievements_msg(self):
-
 		msg = '\n'
 		for achievement in self.achievements:
 
