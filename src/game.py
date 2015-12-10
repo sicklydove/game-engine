@@ -4,7 +4,7 @@ from example_game import states, achievements
 
 if __name__ == '__main__':
     game = Game(states, achievements)
-    writer.init(200)
+    writer.init(100)
 
     while not game.over:
         game.step()

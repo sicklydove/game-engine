@@ -6,11 +6,11 @@ def init(self, cols=COLS):
     global COLS
     COLS = cols
        
-def format(msg):
+def format(msg, leading_newline=True):
     formatted = ''
 
     for i, char in enumerate(msg):
-        if i % COLS == 0:
+        if i + 1 % COLS == 0:
             formatted += '\n'
 
         formatted += char
@@ -38,17 +38,24 @@ def print_unlock_msg(achievement):
     print(unlock_msg)
 
 def print_state_text(state):
+    print('\n', end = '')
+
     if state.key == 'MENU':
         print(format(state.msg))
     else:
         for char in format(state.msg):
-            time.sleep(0.02)
+            #time.sleep(0.02)
             print(char, end = '', flush = True)
 
 def print_choices(state):
-    print ('\n', end = '')
+    print('\n', end = '')
+
     for transition in state.transitions:
-        print(format('[%s] - %s'%(transition.key, transition.msg)))
+        print(format(
+                "[%s] - %s" % (transition.key, transition.msg),
+                leading_newline=False
+            )
+        )
 
 def print_leaving_msg():
     print('Laters')

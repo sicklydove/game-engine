@@ -1,5 +1,17 @@
 from engine import State, Achievement, Transition
 
+def achievements_msg(state):
+    msg = '\n'
+
+    for achievement in state.achievements:
+        msg += '[%s] ' % 'X' if achievement.title in state.unlocked_achievements else ''
+        msg += achievement.title
+        msg += ' - '
+        msg += achievement.msg
+        msg += '\n'
+
+    return msg
+
 states = [
     State(
        key = 'MENU',
@@ -19,7 +31,7 @@ states = [
 
     State(
         key = 'ACHIEVEMENTS',
-        msg = 'TODO: self.achievement_msg()',
+        msg = achievements_msg,
         transitions = [
             Transition('M', 'Return to menu', 'MENU')
         ]

@@ -31,7 +31,17 @@ class State:
         self.key = key
         self.msg = msg
         self.transitions = transitions
-        self.transitions_map = {transition.key: transition for transition in transitions}
+
+    def init(self, game_state):
+        if callable(self.msg):
+            self.msg = self.msg(game_state)
+
+        if callable(self.transitions):
+            self.transitions = self.transitions(game_state)
+
+        self.transitions_map = {
+            transition.key: transition for transition in self.transitions
+        }
 
 class Transition:
     def __init__(self, key, msg, state_key):
@@ -40,45 +50,48 @@ class Transition:
         self.state_key = state_key
 
 class Game:
-
     states_reached = set([])
     unlocked_achievements = set([])
-    
+
     def __init__(self, states, achievements=[]):
         self.states = states
         self.achievements = achievements
 
         self.over = False
 
+        self.load()
+
         self.cmds = {
             'X' : self.save_and_quit,
             'Y' : self.quit
         }
 
-        self.load()
-
-        self.states = {state.key: state for state in self.states}
+        self.states = {
+            state.key: state for state in self.states
+        }
         
         self.current_state = self.states['MENU']
+        self.current_state.init(self)
+
         self.path = [self.current_state]
 
     def load(self):
         try:
-            achievements_file = open('../save/achievements.sav', 'rb')
+            achievements_file = open('save/achievements.sav', 'rb')
             self.unlocked_achievements = pickle.load(achievements_file)
             achievements_file.close()
 
-            nodes_file = open('../save/nodes.sav', 'rb')
+            nodes_file = open('save/nodes.sav', 'rb')
             self.states_reached = pickle.load(nodes_file)
         except FileNotFoundError:
             self.save()
-    
+
     def save(self):
-        achievements_file = open('../save/achievements.sav', 'wb+')
+        achievements_file = open('save/achievements.sav', 'wb+')
         pickle.dump(self.unlocked_achievements, achievements_file)
         achievements_file.close()
 
-        nodes_file = open('../save/nodes.sav', 'wb+')
+        nodes_file = open('save/nodes.sav', 'wb+')
         pickle.dump(self.states_reached, nodes_file)
         nodes_file.close()
 
@@ -113,6 +126,7 @@ class Game:
                     self.cmds[choice]()
 
                 new_state = self.states[self.current_state.transitions_map[choice].state_key]
+                new_state.init(self)
 
                 self.current_state = new_state
                 self.path.append(self.current_state.key)
@@ -123,14 +137,3 @@ class Game:
             except KeyError:
                 pass
     
-    def achievements_msg(self):
-        msg = '\n'
-
-        for achievement in self.achievements:
-            msg += '[%s] ' % 'X' if achievement.title in self.unlocked_achievements else ''
-            msg += achievement.title
-            msg += ' - '
-            msg += achievement.msg
-            msg += '\n'
-
-        return msg
