@@ -1,6 +1,7 @@
 import sys
-import time
 import pickle
+
+import writer
 
 """
     Simple engine for text-based adventure games
@@ -19,19 +20,6 @@ import pickle
         DOCUMENTATION
 """
 
-WINDOW_COLS = 100
-
-def format_msg(msg):
-    formatted = ''
-
-    for i, char in enumerate(msg):
-        if i % WINDOW_COLS == 0:
-            formatted += '\n'
-
-        formatted += char
-
-    return formatted
-
 class Achievement:
     def __init__(self, title, msg, should_unlock):
         self.title = title
@@ -41,7 +29,7 @@ class Achievement:
 class State:
     def __init__(self, key, msg, transitions):
         self.key = key
-        self.msg = format_msg(msg)
+        self.msg = msg
         self.transitions = transitions
         self.transitions_map = {transition.key: transition for transition in transitions}
 
@@ -51,48 +39,15 @@ class Transition:
         self.msg = msg
         self.state_key = state_key
 
-class Writer:
-
-    @staticmethod
-    def print_unlock_msg(achievement):
-        unlock_msg = 'Achievement unlocked!'
-        padding = max([len(achievement.msg), len(achievement.title), len(unlock_msg)]) * '*'
-
-        lines = [padding, unlock_msg, '', achievement.title, achievement.msg, padding]
-
-        unlock_msg = '\n'.join(lines)
-
-        print(unlock_msg)
-
-    @staticmethod
-    def print_state_text(state):
-        if state.key == 'MENU':
-            print(state.msg)
-        else:
-            for char in state.msg:
-                time.sleep(0.02)
-                print(char, end = '', flush = True)
-
-    @staticmethod
-    def print_choices(state):
-        print ('\n', end = '')
-        for transition in state.transitions:
-            print('[%s] - %s'%(transition.key, transition.msg))
-
-    @staticmethod
-    def print_leaving_msg():
-        print('Laters')
-
-    @staticmethod
-    def print_game_over():
-        print ('Game over!\nPress any key to close')
-
 class Game:
 
     states_reached = set([])
     unlocked_achievements = set([])
     
-    def __init__(self):
+    def __init__(self, states, achievements=[]):
+        self.states = states
+        self.achievements = achievements
+
         self.over = False
 
         self.cmds = {
@@ -102,29 +57,28 @@ class Game:
 
         self.load()
 
-        self.states = {state.key: state for state in self.get_states()}
+        self.states = {state.key: state for state in self.states}
         
         self.current_state = self.states['MENU']
         self.path = [self.current_state]
 
-
     def load(self):
         try:
-            achievements_file = open('./achievements.sav', 'rb')
+            achievements_file = open('save/achievements.sav', 'rb')
             self.unlocked_achievements = pickle.load(achievements_file)
             achievements_file.close()
 
-            nodes_file = open('./nodes.sav', 'rb')
+            nodes_file = open('save/nodes.sav', 'rb')
             self.states_reached = pickle.load(nodes_file)
         except FileNotFoundError:
             self.save()
     
     def save(self):
-        achievements_file = open('./achievements.sav', 'wb+')
+        achievements_file = open('save/achievements.sav', 'wb+')
         pickle.dump(self.unlocked_achievements, achievements_file)
         achievements_file.close()
 
-        nodes_file = open('./nodes.sav', 'wb+')
+        nodes_file = open('save/nodes.sav', 'wb+')
         pickle.dump(self.states_reached, nodes_file)
         nodes_file.close()
 
@@ -138,18 +92,18 @@ class Game:
                 self.unlock(a)
 
     def unlock(self, achievement):
-        Writer.print_unlock_msg(achievement)
+        writer.print_unlock_msg(achievement)
         self.unlocked_achievements.add(achievement.title)
 
     def quit(self):
-        Writer.print_leaving_msg()
+        writer.print_leaving_msg()
         sys.exit()
 
     def step(self):
         self.over = not self.current_state.transitions
 
-        Writer.print_state_text(self.current_state)
-        Writer.print_choices(self.current_state)
+        writer.print_state_text(self.current_state)
+        writer.print_choices(self.current_state)
 
         new_state = None
         while new_state is None and not self.over:
@@ -180,53 +134,3 @@ class Game:
             msg += '\n'
 
         return msg
-    
-    #TODO - states/achievements to be read from file
-    #TODO - bit grim; needs wrapping so we execute fns at runtime
-    def get_states(self):
-        all_states = [
-
-            State(
-                key='MENU',
-                msg='''
-                        Title
-                    ''',
-               transitions=[ 
-                    Transition('S', 'Start a new game', 'START'),
-                    Transition('A','View achievements', 'ACHIEVEMENTS'),
-                    Transition('E', 'Exit', 'EXIT')
-                ]
-            ),
-
-            State(
-                key='EXIT',
-                msg='',
-                transitions=[],
-            ),
-
-            State(
-                key='ACHIEVEMENTS',
-                msg=self.achievements_msg(),
-                transitions=[
-                    Transition('M', 'Return to menu', 'MENU')
-                ]
-            ),
-
-            State(
-                key='START',
-                msg='''
-                    Foo
-                    ''',
-                transitions=[],
-                ),
-            ]
-
-        return all_states
-
-    achievements = [
-        Achievement(
-            'Example Achievement Title',
-            'Example achievement text',
-            lambda game: 'FOO' in game.path
-        ),
-    ]
