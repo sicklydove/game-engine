@@ -64,21 +64,21 @@ class Game:
 
     def load(self):
         try:
-            achievements_file = open('save/achievements.sav', 'rb')
+            achievements_file = open('../save/achievements.sav', 'rb')
             self.unlocked_achievements = pickle.load(achievements_file)
             achievements_file.close()
 
-            nodes_file = open('save/nodes.sav', 'rb')
+            nodes_file = open('../save/nodes.sav', 'rb')
             self.states_reached = pickle.load(nodes_file)
         except FileNotFoundError:
             self.save()
     
     def save(self):
-        achievements_file = open('save/achievements.sav', 'wb+')
+        achievements_file = open('../save/achievements.sav', 'wb+')
         pickle.dump(self.unlocked_achievements, achievements_file)
         achievements_file.close()
 
-        nodes_file = open('save/nodes.sav', 'wb+')
+        nodes_file = open('../save/nodes.sav', 'wb+')
         pickle.dump(self.states_reached, nodes_file)
         nodes_file.close()
 
