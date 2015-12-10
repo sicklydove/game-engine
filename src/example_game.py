@@ -18,6 +18,7 @@ states = [
        msg = "Title",
        transitions = [ 
             Transition('S', "Start a new game", 'START'),
+            Transition('C', "Continue saved game", 'CONTINUE'),
             Transition('A', "View achievements", 'ACHIEVEMENTS'),
             Transition('E', "Exit", 'EXIT')
         ]

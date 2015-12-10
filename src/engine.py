@@ -11,7 +11,6 @@ import writer
 
     Big TODOs:
         Implement items, stats & transition dependencies
-        Does loading drop into the current game state?
         Improve IO - print and raw_input doesn't cut it.
         Improve state key/transition usability
         Option to disable magic 0.2s wait
@@ -50,50 +49,54 @@ class Transition:
         self.state_key = state_key
 
 class Game:
-    states_reached = set([])
     unlocked_achievements = set([])
 
     def __init__(self, states, achievements=[]):
-        self.states = states
-        self.achievements = achievements
-
         self.over = False
-
-        self.load()
 
         self.cmds = {
             'X' : self.save_and_quit,
-            'Y' : self.quit
+            'Q' : self.quit
         }
+
+        self.states = states
+        self.achievements = achievements
 
         self.states = {
             state.key: state for state in self.states
         }
+
         
         self.current_state = self.states['MENU']
         self.current_state.init(self)
 
-        self.path = [self.current_state]
+        self.load()
 
     def load(self):
         try:
-            achievements_file = open('save/achievements.sav', 'rb')
-            self.unlocked_achievements = pickle.load(achievements_file)
-            achievements_file.close()
+            state_file = open('save/state.sav', 'rb')
+            game_state = pickle.load(state_file)
+            state_file.close()
 
-            nodes_file = open('save/nodes.sav', 'rb')
-            self.states_reached = pickle.load(nodes_file)
-        except FileNotFoundError:
+            self.unlocked_achievements = game_state['unlocked_achievements']
+            self.path = game_state['path']
+
+            self.states['CONTINUE'] = self.states[self.path[-1]]
+        except (FileNotFoundError, EOFError):
             self.save()
 
-    def save(self):
-        achievements_file = open('save/achievements.sav', 'wb+')
-        pickle.dump(self.unlocked_achievements, achievements_file)
-        achievements_file.close()
+    def get_game_state(self):
+        return {
+            'unlocked_achievements': self.unlocked_achievements,
+            'path': self.path,
+            'stats': None,
+            'items': None
+        }
 
-        nodes_file = open('save/nodes.sav', 'wb+')
-        pickle.dump(self.states_reached, nodes_file)
-        nodes_file.close()
+    def save(self):
+        state_file = open('save/state.sav', 'wb+')
+        pickle.dump(self.get_game_state(), state_file)
+        state_file.close()
 
     def save_and_quit(self):
         self.save()
@@ -130,9 +133,6 @@ class Game:
 
                 self.current_state = new_state
                 self.path.append(self.current_state.key)
-
-                if new_state.key not in self.states_reached:
-                    self.states_reached.add(new_state.key)
 
             except KeyError:
                 pass
