@@ -1,7 +1,9 @@
+import copy
 import sys
 import pickle
 
 import writer
+from player import Player
 
 """
     Simple engine for text-based adventure games
@@ -26,10 +28,11 @@ class Achievement:
         self.should_unlock = should_unlock
 
 class State:
-    def __init__(self, key, msg, transitions):
+    def __init__(self, key, msg, transitions, entry_hook=lambda x: None):
         self.key = key
         self.msg = msg
         self.transitions = transitions
+        self.entry_hook = entry_hook
 
     def init(self, game_state):
         if callable(self.msg):
@@ -39,21 +42,22 @@ class State:
             self.transitions = self.transitions(game_state)
 
         self.transitions_map = {
-            transition.key: transition for transition in self.transitions
+            transition.key: transition
+                for transition in self.transitions
+                    if transition.is_active(game_state)
         }
 
 class Transition:
-    def __init__(self, key, msg, state_key):
+    def __init__(self, key, msg, target_state_key, is_active=lambda x: True):
         self.key = key
         self.msg = msg
-        self.state_key = state_key
+        self.target_state_key = target_state_key
+        self.is_active = is_active
 
 class Game:
     unlocked_achievements = set([])
 
     def __init__(self, states, achievements=[]):
-        self.over = False
-
         self.cmds = {
             'X' : self.save_and_quit,
             'Q' : self.quit
@@ -66,24 +70,40 @@ class Game:
             state.key: state for state in self.states
         }
 
-        
-        self.current_state = self.states['MENU']
-        self.current_state.init(self)
+        self.has_save = self.load_persistent()
 
-        self.load()
+        self.reset_state()
 
-    def load(self):
+    @property
+    def current_state(self):
+        return self.states[self.path[-1]]
+
+    def load_persistent(self):
         try:
             state_file = open('save/state.sav', 'rb')
             game_state = pickle.load(state_file)
             state_file.close()
 
             self.unlocked_achievements = game_state['unlocked_achievements']
-            self.path = game_state['path']
 
-            self.states['CONTINUE'] = self.states[self.path[-1]]
+            self.states['CONTINUE'] = self.states[game_state['path'][-1]]
+            self.states['CONTINUE'].entry_hook = lambda game: game.load_game()
         except (FileNotFoundError, EOFError):
-            self.save()
+            return False
+
+        return True
+
+    def load_game(self):
+        state_file = open('save/state.sav', 'rb')
+        game_state = pickle.load(state_file)
+        state_file.close()
+
+        self.path = game_state['path']
+        self.stats = game_state['stats']
+        self.items = game_state['items']
+
+        # Unbind the entry hook incase we ever loop back to this state
+        self.states['CONTINUE'].entry_hook = lambda x: None
 
     def get_game_state(self):
         return {
@@ -92,6 +112,12 @@ class Game:
             'stats': None,
             'items': None
         }
+
+    def reset_state(self):
+        self.over = False
+        self.path = ['MENU']
+        self.current_state.init(self)
+        self.player = Player('TODO')
 
     def save(self):
         state_file = open('save/state.sav', 'wb+')
@@ -112,14 +138,18 @@ class Game:
         self.unlocked_achievements.add(achievement.title)
 
     def quit(self):
-        writer.print_leaving_msg()
         sys.exit()
 
     def step(self):
         self.over = not self.current_state.transitions
 
         writer.print_state_text(self.current_state)
-        writer.print_choices(self.current_state)
+
+        choices = [x for x in self.current_state.transitions
+            if x.is_active(self)
+        ]
+
+        writer.print_choices(choices)
 
         new_state = None
         while new_state is None and not self.over:
@@ -128,11 +158,10 @@ class Game:
                 if choice in self.cmds:
                     self.cmds[choice]()
 
-                new_state = self.states[self.current_state.transitions_map[choice].state_key]
+                new_state = self.states[self.current_state.transitions_map[choice].target_state_key]
                 new_state.init(self)
 
-                self.current_state = new_state
-                self.path.append(self.current_state.key)
+                self.path.append(new_state.key)
 
             except KeyError:
                 pass

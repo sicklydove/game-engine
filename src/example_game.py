@@ -16,9 +16,9 @@ states = [
     State(
        key = 'MENU',
        msg = "Title",
-       transitions = [ 
+       transitions = [
             Transition('S', "Start a new game", 'START'),
-            Transition('C', "Continue saved game", 'CONTINUE'),
+            Transition('C', "Continue saved game", 'CONTINUE', lambda game: game.has_save),
             Transition('A', "View achievements", 'ACHIEVEMENTS'),
             Transition('E', "Exit", 'EXIT')
         ]
@@ -42,6 +42,7 @@ states = [
         key = 'START',
         msg = 'FOO',
         transitions = [],
+        entry_hook = lambda game: game.reset_state
     ),
 ]
 

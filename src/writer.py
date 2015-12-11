@@ -47,18 +47,15 @@ def print_state_text(state):
             #time.sleep(0.02)
             print(char, end = '', flush = True)
 
-def print_choices(state):
+def print_choices(transitions):
     print('\n', end = '')
 
-    for transition in state.transitions:
+    for t in transitions:
         print(format(
-                "[%s] - %s" % (transition.key, transition.msg),
+                "[%s] - %s" % (t.key, t.msg),
                 leading_newline=False
             )
         )
 
-def print_leaving_msg():
-    print('Laters')
-
 def print_game_over():
-    print ('Game over!\nPress any key to close')
+    print ('\nGame over!\n\nPress any key to close.')
