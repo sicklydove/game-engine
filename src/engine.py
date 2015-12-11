@@ -7,9 +7,7 @@ from player import Player
 
 """
     Simple engine for text-based adventure games
-    Version 0.1 09/12/15
     laurie@farragar.com
-
 
     Big TODOs:
         Implement items, stats & transition dependencies
@@ -65,6 +63,12 @@ class Game:
 
         self.states = states
         self.achievements = achievements
+
+        self.game_state = {
+            'path': self.path,
+            'stats': self.player.stats,
+            'items': self.player.items
+        }
 
         self.states = {
             state.key: state for state in self.states
