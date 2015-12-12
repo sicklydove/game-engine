@@ -30,19 +30,23 @@ class State:
         self.key = key
         self.msg = msg
         self.transitions = transitions
-        self.entry_hook = entry_hook
+        self.__entry_hook = entry_hook
 
-    def init(self, game_state):
+    def entry_hook(self, game):
+        self.init(game)
+        self.__entry_hook(game)
+
+    def init(self, game):
         if callable(self.msg):
-            self.msg = self.msg(game_state)
+            self.msg = self.msg(game)
 
         if callable(self.transitions):
-            self.transitions = self.transitions(game_state)
+            self.transitions = self.transitions(game)
 
         self.transitions_map = {
             transition.key: transition
                 for transition in self.transitions
-                    if transition.is_active(game_state)
+                    if transition.is_active(game)
         }
 
 class Transition:
@@ -64,12 +68,6 @@ class Game:
         self.states = states
         self.achievements = achievements
 
-        self.game_state = {
-            'path': self.path,
-            'stats': self.player.stats,
-            'items': self.player.items
-        }
-
         self.states = {
             state.key: state for state in self.states
         }
@@ -77,6 +75,12 @@ class Game:
         self.has_save = self.load_persistent()
 
         self.reset_state()
+
+        self.game_state = {
+            'path': self.path,
+            'stats': self.player.stats,
+            'items': self.player.items
+        }
 
     @property
     def current_state(self):
@@ -89,9 +93,6 @@ class Game:
             state_file.close()
 
             self.unlocked_achievements = game_state['unlocked_achievements']
-
-            self.states['CONTINUE'] = self.states[game_state['path'][-1]]
-            self.states['CONTINUE'].entry_hook = lambda game: game.load_game()
         except (FileNotFoundError, EOFError):
             return False
 
@@ -106,15 +107,12 @@ class Game:
         self.stats = game_state['stats']
         self.items = game_state['items']
 
-        # Unbind the entry hook incase we ever loop back to this state
-        self.states['CONTINUE'].entry_hook = lambda x: None
-
     def get_game_state(self):
         return {
             'unlocked_achievements': self.unlocked_achievements,
             'path': self.path,
-            'stats': None,
-            'items': None
+            'stats': [],
+            'items': []
         }
 
     def reset_state(self):
@@ -163,9 +161,11 @@ class Game:
                     self.cmds[choice]()
 
                 new_state = self.states[self.current_state.transitions_map[choice].target_state_key]
+                new_state.entry_hook(self)
                 new_state.init(self)
 
-                self.path.append(new_state.key)
+                if new_state.key != 'CONTINUE':
+                    self.path.append(new_state.key)
 
             except KeyError:
                 pass

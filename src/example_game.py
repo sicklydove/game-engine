@@ -23,13 +23,18 @@ states = [
             Transition('E', "Exit", 'EXIT')
         ]
     ),
-
     State(
-        key = 'EXIT',
+        key = 'START',
+        msg = "FOO",
+        transitions = [],
+        entry_hook = lambda game: game.reset_state()
+    ),
+    State(
+        key = 'CONTINUE',
         msg = "",
         transitions = [],
+        entry_hook = lambda game: game.load_game()
     ),
-
     State(
         key = 'ACHIEVEMENTS',
         msg = achievements_msg,
@@ -37,12 +42,10 @@ states = [
             Transition('M', 'Return to menu', 'MENU')
         ]
     ),
-
     State(
-        key = 'START',
-        msg = 'FOO',
+        key = 'EXIT',
+        msg = "",
         transitions = [],
-        entry_hook = lambda game: game.reset_state
     ),
 ]
 

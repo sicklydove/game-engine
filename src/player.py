@@ -7,7 +7,7 @@ class Player:
         if stats is None:
             self.stats = []
 
-        self.stats = {stat.name: stat.value for stat in stats}
+        self.stats = {stat.name: stat.value for stat in self.stats}
 
     def get_item(item):
         self.items.append(item)
@@ -35,10 +35,10 @@ class Item(object):
             if stacks:
                 self.stacks = 1
 
-        def get_hook(self):
-            if self.stacks:
-                self.stacks += 1
-                self.get_hook()
+    def get_hook(self):
+        if self.stacks:
+            self.stacks += 1
+            self.get_hook()
 
 class Stats(object):
     def __init__(self, arg, update_hook = lambda x: None):
